@@ -431,12 +431,15 @@ export class MangaRoom extends DurableObject {
                 return;
             }
 
-            this.broadcast({
-                type: "chat",
-                sender,
-                text,
-                roomID
-            });
+            this.broadcastExcept(
+                ws,
+                {
+                    type: "chat",
+                    sender,
+                    text,
+                    roomID
+                }
+            );
 
             return;
         }
