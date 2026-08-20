@@ -195,7 +195,15 @@ export class MangaRoom extends DurableObject {
                 sender,
                 joinedAt:
                     attachment.joinedAt ||
-                    Date.now()
+                    Date.now(),
+                isLocked:
+                    typeof data.isLocked === "boolean"
+                        ? data.isLocked
+                        : attachment.isLocked ?? null,
+                chapter:
+                    data.chapter
+                        ? cleanString(data.chapter, MAX_CHAPTER)
+                        : attachment.chapter || ""
             });
         }
 
@@ -280,7 +288,51 @@ export class MangaRoom extends DurableObject {
                 {
                     type: "participant",
                     sender,
-                    chapter
+                    chapter,
+                    isLocked:
+                        typeof data.isLocked === "boolean"
+                            ? data.isLocked
+                            : null
+                }
+            );
+
+            return;
+        }
+
+
+        // СТАТУС ЗАМОЧКА
+        if (data.type === "lock_state") {
+
+            if (!sender) {
+                return;
+            }
+
+            this.broadcastExcept(
+                ws,
+                {
+                    type: "lock_state",
+                    sender,
+                    isLocked: !!data.isLocked
+                }
+            );
+
+            return;
+        }
+
+
+        // ПЕЧАТАЕТ...
+        if (data.type === "typing") {
+
+            if (!sender) {
+                return;
+            }
+
+            this.broadcastExcept(
+                ws,
+                {
+                    type: "typing",
+                    sender,
+                    isTyping: !!data.isTyping
                 }
             );
 
@@ -509,7 +561,11 @@ export class MangaRoom extends DurableObject {
                         sender:
                             attachment.sender,
                         chapter:
-                            ""
+                            attachment.chapter || "",
+                        isLocked:
+                            typeof attachment.isLocked === "boolean"
+                                ? attachment.isLocked
+                                : null
                     });
                 }
 
