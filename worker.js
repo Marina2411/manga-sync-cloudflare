@@ -238,7 +238,7 @@ export class MangaRoom extends DurableObject {
                 );
 
             const participants =
-                this.getParticipants();
+                this.getParticipants(ws);
 
             let leaderName =
                 await this.ctx.storage.get(
@@ -586,7 +586,7 @@ export class MangaRoom extends DurableObject {
     }
 
 
-    getParticipants() {
+    getParticipants(exceptWs = null) {
 
         const result = [];
 
@@ -594,6 +594,10 @@ export class MangaRoom extends DurableObject {
             this.ctx.getWebSockets();
 
         for (const ws of sockets) {
+
+            if (ws === exceptWs) {
+                continue;
+            }
 
             try {
 
