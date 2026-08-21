@@ -4,6 +4,11 @@ const MAX_ROOM = 64;
 const MAX_NAME = 64;
 const MAX_TEXT = 2000;
 const MAX_CHAPTER = 500;
+// ~500 000 символов base64 - примерно 375 КБ бинарных данных.
+// Этого хватает на голосовое сообщение около минуты при разумном битрейте,
+// с запасом под лимиты сообщений Cloudflare Durable Objects.
+const MAX_VOICE_BASE64 = 500000;
+const MAX_VOICE_MIME = 100;
 
 function cleanString(value, max) {
     if (typeof value !== "string") {
@@ -489,6 +494,48 @@ export class MangaRoom extends DurableObject {
                     type: "chat",
                     sender,
                     text,
+                    roomID
+                }
+            );
+
+            return;
+        }
+
+
+        // ГОЛОСОВОЕ СООБЩЕНИЕ
+        if (data.type === "voice") {
+
+            const audio =
+                typeof data.audio === "string"
+                    ? data.audio
+                    : "";
+
+            if (
+                !audio ||
+                audio.length > MAX_VOICE_BASE64
+            ) {
+                // Пустое или слишком большое сообщение - молча игнорируем,
+                // не пытаемся обрезать base64 (это испортит аудио).
+                return;
+            }
+
+            const mime =
+                cleanString(data.mime, MAX_VOICE_MIME) ||
+                "audio/webm";
+
+            const duration =
+                Number.isFinite(data.duration)
+                    ? Math.max(0, Math.min(120, Math.round(data.duration)))
+                    : 0;
+
+            this.broadcastExcept(
+                ws,
+                {
+                    type: "voice",
+                    sender,
+                    audio,
+                    mime,
+                    duration,
                     roomID
                 }
             );
